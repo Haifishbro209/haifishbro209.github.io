@@ -212,119 +212,34 @@
       scene.add(shape);
     }
 
-    // Black Hole System
-    const blackHoleGeometry = new THREE.SphereGeometry(1.5, 64, 64);
-    const blackHoleMaterial = new THREE.ShaderMaterial({
+    // Central Energy Sphere
+    const sphereGeometry = new THREE.SphereGeometry(2, 32, 32);
+    const sphereMaterial = new THREE.ShaderMaterial({
       vertexShader: `
         varying vec3 vPosition;
-        varying vec3 vNormal;
-        varying vec2 vUv;
         void main() {
-          vPosition = position;
-          vNormal = normal;
-          vUv = uv;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-      `,
-      fragmentShader: `
-        uniform float time;
-        uniform float intensity;
-        varying vec3 vPosition;
-        varying vec3 vNormal;
-        varying vec2 vUv;
-        
-        void main() {
-          float dist = length(vUv - 0.5);
-          float blackHole = 1.0 - smoothstep(0.0, 0.5, dist);
-          
-          // Event horizon effect
-          float horizon = smoothstep(0.3, 0.5, dist);
-          float accretion = sin(dist * 20.0 - time * 5.0) * 0.5 + 0.5;
-          
-          vec3 orangeGlow = vec3(1.0, 0.42, 0.21) * accretion * horizon * intensity;
-          vec3 blackCore = vec3(0.0, 0.0, 0.0);
-          
-          vec3 finalColor = mix(blackCore, orangeGlow, horizon);
-          float alpha = blackHole + horizon * 0.8 * intensity;
-          
-          gl_FragColor = vec4(finalColor, alpha);
-        }
-      `,
-      uniforms: {
-        time: { value: 0 },
-        intensity: { value: 1.0 }
-      },
-      transparent: true,
-      side: THREE.DoubleSide
-    });
-
-    const blackHole = new THREE.Mesh(blackHoleGeometry, blackHoleMaterial);
-    blackHole.position.set(0, 0, -10);
-    scene.add(blackHole);
-
-    // Accretion Disk
-    const diskGeometry = new THREE.RingGeometry(2, 6, 64);
-    const diskMaterial = new THREE.ShaderMaterial({
-      vertexShader: `
-        varying vec2 vUv;
-        varying vec3 vPosition;
-        void main() {
-          vUv = uv;
           vPosition = position;
           gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         }
       `,
       fragmentShader: `
         uniform float time;
-        uniform float intensity;
-        varying vec2 vUv;
         varying vec3 vPosition;
-        
         void main() {
-          float dist = length(vPosition.xy);
-          float angle = atan(vPosition.y, vPosition.x);
-          
-          float spiral = sin(angle * 8.0 + dist * 2.0 - time * 3.0);
-          float turbulence = sin(dist * 10.0 - time * 4.0) * 0.5 + 0.5;
-          
-          float brightness = (spiral * 0.5 + 0.5) * turbulence;
-          brightness *= smoothstep(6.0, 2.0, dist);
-          brightness *= intensity;
-          
-          vec3 orange = vec3(1.0, 0.42, 0.21);
-          vec3 red = vec3(1.0, 0.1, 0.0);
-          vec3 color = mix(red, orange, brightness);
-          
-          gl_FragColor = vec4(color * brightness, brightness * 0.6);
+          float intensity = sin(vPosition.x * 10.0 + time) * sin(vPosition.y * 10.0 + time) * sin(vPosition.z * 10.0 + time);
+          vec3 color = mix(vec3(0.0, 0.0, 0.0), vec3(1.0, 0.42, 0.21), intensity);
+          gl_FragColor = vec4(color, 0.8);
         }
       `,
       uniforms: {
-        time: { value: 0 },
-        intensity: { value: 1.0 }
+        time: { value: 0 }
       },
-      transparent: true,
-      side: THREE.DoubleSide
+      transparent: true
     });
 
-    const accretionDisk = new THREE.Mesh(diskGeometry, diskMaterial);
-    accretionDisk.position.set(0, 0, -10);
-    accretionDisk.rotation.x = Math.PI / 6;
-    scene.add(accretionDisk);
-
-    // Black Hole State Management
-    let blackHoleState = {
-      phase: 'growing', // growing, critical, exploding, reset
-      intensity: 1.0,
-      scale: 1.0,
-      explosionTime: 0,
-      cycleTime: 0,
-      phaseDuration: {
-        growing: 8000,    // 8 seconds growing
-        critical: 2000,   // 2 seconds critical mass
-        exploding: 3000,  // 3 seconds explosion
-        reset: 1000       // 1 second reset
-      }
-    };
+    const energySphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+    energySphere.position.set(0, 0, -10);
+    scene.add(energySphere);
 
     camera.position.z = 20;
 
@@ -348,149 +263,23 @@
       requestAnimationFrame(animate);
 
       const time = Date.now() * 0.001;
-      blackHoleState.cycleTime = time * 1000;
       
-      // Black Hole Cycle Management
-      const totalCycle = Object.values(blackHoleState.phaseDuration).reduce((a, b) => a + b, 0);
-      const cyclePosition = blackHoleState.cycleTime % totalCycle;
-      
-      let phaseTime = 0;
-      if (cyclePosition < blackHoleState.phaseDuration.growing) {
-        blackHoleState.phase = 'growing';
-        phaseTime = cyclePosition;
-      } else if (cyclePosition < blackHoleState.phaseDuration.growing + blackHoleState.phaseDuration.critical) {
-        blackHoleState.phase = 'critical';
-        phaseTime = cyclePosition - blackHoleState.phaseDuration.growing;
-      } else if (cyclePosition < blackHoleState.phaseDuration.growing + blackHoleState.phaseDuration.critical + blackHoleState.phaseDuration.exploding) {
-        blackHoleState.phase = 'exploding';
-        phaseTime = cyclePosition - blackHoleState.phaseDuration.growing - blackHoleState.phaseDuration.critical;
-      } else {
-        blackHoleState.phase = 'reset';
-        phaseTime = cyclePosition - blackHoleState.phaseDuration.growing - blackHoleState.phaseDuration.critical - blackHoleState.phaseDuration.exploding;
-      }
-      
-      // Update Black Hole based on phase
-      switch(blackHoleState.phase) {
-        case 'growing':
-          const growthProgress = phaseTime / blackHoleState.phaseDuration.growing;
-          blackHoleState.intensity = 1.0 + growthProgress * 2.0;
-          blackHoleState.scale = 1.0 + growthProgress * 0.5;
-          
-          // Particles get sucked in
-          shapes.forEach((shape, index) => {
-            const distanceToBlackHole = shape.position.distanceTo(blackHole.position);
-            if (distanceToBlackHole < 20) {
-              const pullForce = (20 - distanceToBlackHole) / 200 * growthProgress;
-              const direction = new THREE.Vector3().subVectors(blackHole.position, shape.position).normalize();
-              shape.position.add(direction.multiplyScalar(pullForce));
-            }
-          });
-          break;
-          
-        case 'critical':
-          const criticalProgress = phaseTime / blackHoleState.phaseDuration.critical;
-          blackHoleState.intensity = 3.0 + Math.sin(criticalProgress * Math.PI * 10) * 2.0;
-          blackHoleState.scale = 1.5 + Math.sin(criticalProgress * Math.PI * 8) * 0.3;
-          
-          // Extreme particle attraction
-          shapes.forEach((shape, index) => {
-            const distanceToBlackHole = shape.position.distanceTo(blackHole.position);
-            if (distanceToBlackHole < 25) {
-              const pullForce = (25 - distanceToBlackHole) / 100;
-              const direction = new THREE.Vector3().subVectors(blackHole.position, shape.position).normalize();
-              shape.position.add(direction.multiplyScalar(pullForce));
-            }
-          });
-          break;
-          
-        case 'exploding':
-          const explosionProgress = phaseTime / blackHoleState.phaseDuration.exploding;
-          blackHoleState.intensity = 5.0 * (1.0 - explosionProgress);
-          blackHoleState.scale = 1.5 + explosionProgress * 10;
-          
-          // Particles get blown away
-          shapes.forEach((shape, index) => {
-            const distanceToBlackHole = shape.position.distanceTo(blackHole.position);
-            if (distanceToBlackHole < 30) {
-              const pushForce = explosionProgress * 2.0;
-              const direction = new THREE.Vector3().subVectors(shape.position, blackHole.position).normalize();
-              shape.position.add(direction.multiplyScalar(pushForce));
-            }
-          });
-          break;
-          
-        case 'reset':
-          const resetProgress = phaseTime / blackHoleState.phaseDuration.reset;
-          blackHoleState.intensity = resetProgress;
-          blackHoleState.scale = 10.0 * (1.0 - resetProgress) + 1.0 * resetProgress;
-          
-          // Reset particles to original positions
-          shapes.forEach((shape, index) => {
-            const originalPos = new THREE.Vector3(
-              (Math.random() - 0.5) * 50,
-              shape.userData.originalY,
-              (Math.random() - 0.5) * 50
-            );
-            shape.position.lerp(originalPos, resetProgress * 0.1);
-          });
-          break;
-      }
-      
-      // Update Black Hole uniforms and scale
-      blackHole.material.uniforms.time.value = time;
-      blackHole.material.uniforms.intensity.value = blackHoleState.intensity;
-      blackHole.scale.setScalar(blackHoleState.scale);
-      
-      accretionDisk.material.uniforms.time.value = time;
-      accretionDisk.material.uniforms.intensity.value = blackHoleState.intensity;
-      accretionDisk.rotation.z += 0.02 * blackHoleState.intensity;
-      
-      // Black hole rotation
-      blackHole.rotation.y += 0.01 * blackHoleState.intensity;
+      // Update energy sphere
+      energySphere.material.uniforms.time.value = time;
+      energySphere.rotation.x += 0.005;
+      energySphere.rotation.y += 0.01;
 
       // Animate particles
       const positions = particleSystem.geometry.attributes.position.array;
       for (let i = 0; i < particleCount; i++) {
-        const particlePos = new THREE.Vector3(
-          positions[i * 3],
-          positions[i * 3 + 1],
-          positions[i * 3 + 2]
-        );
-        
-        // Black hole influence on particles
-        const distanceToBlackHole = particlePos.distanceTo(blackHole.position);
-        
-        if (blackHoleState.phase === 'growing' || blackHoleState.phase === 'critical') {
-          if (distanceToBlackHole < 30 && distanceToBlackHole > 2) {
-            const pullStrength = (30 - distanceToBlackHole) / 30 * 0.05 * blackHoleState.intensity;
-            const direction = new THREE.Vector3().subVectors(blackHole.position, particlePos).normalize();
-            
-            positions[i * 3] += direction.x * pullStrength;
-            positions[i * 3 + 1] += direction.y * pullStrength;
-            positions[i * 3 + 2] += direction.z * pullStrength;
-          }
-        } else if (blackHoleState.phase === 'exploding') {
-          if (distanceToBlackHole < 40) {
-            const pushStrength = 0.5;
-            const direction = new THREE.Vector3().subVectors(particlePos, blackHole.position).normalize();
-            
-            positions[i * 3] += direction.x * pushStrength;
-            positions[i * 3 + 1] += direction.y * pushStrength;
-            positions[i * 3 + 2] += direction.z * pushStrength;
-          }
-        }
-        
-        // Normal particle movement
         positions[i * 3] += particleVelocities[i].x;
         positions[i * 3 + 1] += particleVelocities[i].y;
         positions[i * 3 + 2] += particleVelocities[i].z;
 
-        // Boundary check and reset if too far
-        if (Math.abs(positions[i * 3]) > 50 || Math.abs(positions[i * 3 + 1]) > 50 || Math.abs(positions[i * 3 + 2]) > 50) {
-          positions[i * 3] = (Math.random() - 0.5) * 100;
-          positions[i * 3 + 1] = (Math.random() - 0.5) * 100;
-          positions[i * 3 + 2] = (Math.random() - 0.5) * 100;
-        }
+        // Boundary check
+        if (Math.abs(positions[i * 3]) > 50) particleVelocities[i].x *= -1;
+        if (Math.abs(positions[i * 3 + 1]) > 50) particleVelocities[i].y *= -1;
+        if (Math.abs(positions[i * 3 + 2]) > 50) particleVelocities[i].z *= -1;
       }
       particleSystem.geometry.attributes.position.needsUpdate = true;
 
@@ -500,11 +289,7 @@
         shape.rotation.y += shape.userData.rotationSpeed.y;
         shape.rotation.z += shape.userData.rotationSpeed.z;
         
-        // Only apply normal floating if not being affected by black hole
-        const distanceToBlackHole = shape.position.distanceTo(blackHole.position);
-        if (distanceToBlackHole > 25 || blackHoleState.phase === 'reset') {
-          shape.position.y = shape.userData.originalY + Math.sin(time + index) * 2;
-        }
+        shape.position.y = shape.userData.originalY + Math.sin(time + index) * 2;
       });
 
       // Camera movement based on mouse and scroll
