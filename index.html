@@ -1,55 +1,56 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kaloyan Nikolov - Future Developer & Runner</title>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto:wght@300;400;500&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="index.css">
 </head>
+
 <body>
   <canvas id="canvas"></canvas>
-  
+
 
 
   <div class="container">
     <section class="hero">
       <h1>KALOYAN NIKOLOV</h1>
-      <h2>Future Developer & Performance Runner</h2>
+      <h2>Running && Coding</h2>
       <button class="cta-button">Explore My Universe</button>
-      <div class="scroll-indicator">⬇ Scroll to discover</div>
+      <div class="scroll-indicator">⬇ Scroll to enjoy the cool animations made 100% by GitHub Copilot</div>
     </section>
 
     <section class="section">
-      <h3>Programming & Development</h3>
+      <h3>Stuff I've used</h3>
       <div class="skills-grid">
         <div class="skill-card">
           <h4>Backend Development</h4>
           <ul>
-            <li>Python (CLI-Tools, Flask, FastAPI)</li>
-            <li>SQLAlchemy & Database Design</li>
-            <li>Rust (Webserver-Projekte)</li>
-            <li>SQL (PostgreSQL, Supabase)</li>
+            <li>Python</li>
+            <li>SQLAlchemy & PostgreSQL</li>
+            <li> Flask </li>
           </ul>
         </div>
-        
+
         <div class="skill-card">
           <h4>Frontend & Web</h4>
           <ul>
             <li>JavaScript (Vanilla, DOM)</li>
-            <li>HTML/CSS (Responsive Design)</li>
-            <li>Cookie-Banner-Logik (GDPR)</li>
-            <li>3D Web Experiences</li>
+            <li>Tailwind CSS</li>
+            <li>Claude Sonnet 4 for UI</li>
           </ul>
         </div>
-        
+
         <div class="skill-card">
-          <h4>Systems & DevOps</h4>
+          <h4>Systems</h4>
           <ul>
             <li>Bash/Linux CLI (Daily Use)</li>
             <li>Google Cloud Platform</li>
-            <li>Firebase Hosting</li>
-            <li>Git & GitHub Workflow</li>
+            <li>Supabase</li>
           </ul>
         </div>
       </div>
@@ -61,17 +62,15 @@
             <li>Google Calendar API</li>
             <li>OpenAI API (Assistant-Integration)</li>
             <li>Mailgun API (E-Mail-Automation)</li>
-            <li>B2B SaaS Building (Cookietrust)</li>
           </ul>
         </div>
-        
+
         <div class="skill-card">
           <h4>Hardware & Embedded</h4>
           <ul>
             <li>Arduino/ESP32 Programming</li>
             <li>WLAN & Sensor Integration</li>
-            <li>OLED Displays & Motor Control</li>
-            <li>Custom OS Setups (Ubuntu)</li>
+            <li>Rasberry Pi Ubuntu Server</li>
           </ul>
         </div>
       </div>
@@ -102,11 +101,23 @@
       </div>
 
       <div class="contact">
-        <h3>Ready for the Future?</h3>
+        <h3>Live Projects</h3>
         <p style="font-size: 1.2rem; margin: 20px 0;">
-          Let's build something extraordinary together
+          Discover innovative tools
         </p>
-        <button class="cta-button">Get In Touch</button>
+        <div class="running-stats">
+          <div class="stat-card" style="cursor: pointer;" onclick="window.location.href ='https://organize-ai.eu'">
+            <div class="stat-value">Organize AI</div>
+            <br>
+            <div>Interact with your Google Calendar using an AI assistant that schedules events seamlessly.</div>
+          </div>
+          <div class="stat-card" style="cursor: pointer;"
+            onclick="window.location.href='https://www.thetradingjournal.online'">
+            <div class="stat-value">The Trading Journal</div>
+            <br>
+            <div>Track your trades in a calendar to identify patterns and improve your trading strategies.</div>
+          </div>
+        </div>
       </div>
     </section>
   </div>
@@ -114,4 +125,5 @@
   <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
   <script src="script.js"></script>
 </body>
+
 </html>
