@@ -212,23 +212,27 @@
       scene.add(shape);
     }
 
-    // Central Energy Orb - Futuristic Pulsing Core
-    const orbGeometry = new THREE.SphereGeometry(3, 64, 64);
-    const orbMaterial = new THREE.ShaderMaterial({
+    // Rotating Galaxy - Scroll Dependent
+    const galaxy = new THREE.Group();
+    galaxy.position.set(0, 0, -15);
+    scene.add(galaxy);
+
+    // Galaxy Center - Black Hole
+    const centerGeometry = new THREE.SphereGeometry(1, 32, 32);
+    const centerMaterial = new THREE.ShaderMaterial({
       vertexShader: `
         varying vec3 vPosition;
         varying vec3 vNormal;
-        varying vec2 vUv;
         uniform float time;
+        uniform float scrollFactor;
         
         void main() {
           vPosition = position;
           vNormal = normal;
-          vUv = uv;
           
-          // Pulsing effect
+          // Pulsing black hole effect
           vec3 newPosition = position;
-          float pulse = sin(time * 2.0) * 0.1 + 1.0;
+          float pulse = sin(time * 3.0 + scrollFactor * 0.1) * 0.15 + 1.0;
           newPosition *= pulse;
           
           gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
@@ -236,54 +240,100 @@
       `,
       fragmentShader: `
         uniform float time;
+        uniform float scrollFactor;
         varying vec3 vPosition;
         varying vec3 vNormal;
-        varying vec2 vUv;
         
         void main() {
-          // Create energy waves
-          float wave1 = sin(vPosition.x * 5.0 + time * 3.0);
-          float wave2 = sin(vPosition.y * 5.0 + time * 2.0);
-          float wave3 = sin(vPosition.z * 5.0 + time * 4.0);
+          // Event horizon effect
+          float distanceFromCenter = length(vNormal);
+          float intensity = 1.0 - distanceFromCenter;
           
-          // Energy intensity based on waves
-          float intensity = (wave1 + wave2 + wave3) * 0.5 + 0.5;
+          // Colors shift based on scroll
+          vec3 blackHole = vec3(0.1, 0.05, 0.0);
+          vec3 orangeGlow = vec3(1.0, 0.42, 0.21);
+          vec3 finalColor = mix(blackHole, orangeGlow, intensity * (0.5 + scrollFactor * 0.001));
           
-          // Core energy colors
-          vec3 coreColor = vec3(1.0, 0.42, 0.21); // Orange
-          vec3 energyColor = vec3(1.0, 0.8, 0.3); // Bright orange-yellow
-          vec3 darkColor = vec3(0.1, 0.05, 0.0); // Dark orange
-          
-          // Mix colors based on intensity
-          vec3 color = mix(darkColor, coreColor, intensity);
-          color = mix(color, energyColor, intensity * 0.7);
-          
-          // Add fresnel effect for glow
-          float fresnel = pow(1.0 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.0);
-          color += energyColor * fresnel * 0.5;
-          
-          // Pulsing alpha
-          float alpha = 0.8 + sin(time * 2.0) * 0.2;
-          
-          gl_FragColor = vec4(color, alpha);
+          gl_FragColor = vec4(finalColor, 0.9);
         }
       `,
       uniforms: {
-        time: { value: 0 }
+        time: { value: 0 },
+        scrollFactor: { value: 0 }
       },
-      transparent: true,
-      side: THREE.DoubleSide
+      transparent: true
     });
 
-    const energyOrb = new THREE.Mesh(orbGeometry, orbMaterial);
-    energyOrb.position.set(0, 0, -10);
-    scene.add(energyOrb);
+    const galaxyCenter = new THREE.Mesh(centerGeometry, centerMaterial);
+    galaxy.add(galaxyCenter);
 
-    // Add outer energy ring
-    const ringGeometry = new THREE.RingGeometry(4, 5, 32);
-    const ringMaterial = new THREE.ShaderMaterial({
+    // Galaxy Arms - Spiral Structure
+    const galaxyArms = [];
+    const armCount = 4;
+    const starsPerArm = 150;
+
+    for (let arm = 0; arm < armCount; arm++) {
+      const armGeometry = new THREE.BufferGeometry();
+      const armPositions = new Float32Array(starsPerArm * 3);
+      const armColors = new Float32Array(starsPerArm * 3);
+      const armSizes = new Float32Array(starsPerArm);
+      
+      const armData = [];
+
+      for (let i = 0; i < starsPerArm; i++) {
+        const radius = 2 + (i / starsPerArm) * 12; // Spiral outward
+        const angle = (arm * Math.PI * 0.5) + (i / starsPerArm) * Math.PI * 4; // Spiral angle
+        const randomOffset = (Math.random() - 0.5) * 0.8;
+        
+        const x = Math.cos(angle) * (radius + randomOffset);
+        const y = Math.sin(angle) * (radius + randomOffset);
+        const z = (Math.random() - 0.5) * 1;
+
+        armPositions[i * 3] = x;
+        armPositions[i * 3 + 1] = y;
+        armPositions[i * 3 + 2] = z;
+
+        // Star colors - orange to yellow gradient
+        const colorIntensity = 1.0 - (radius / 14);
+        armColors[i * 3] = 1.0; // Red
+        armColors[i * 3 + 1] = 0.4 + colorIntensity * 0.4; // Green
+        armColors[i * 3 + 2] = 0.1 + colorIntensity * 0.2; // Blue
+
+        // Star sizes
+        armSizes[i] = Math.random() * 2 + 0.5;
+
+        armData.push({
+          originalRadius: radius,
+          originalAngle: angle,
+          armIndex: arm
+        });
+      }
+
+      armGeometry.setAttribute('position', new THREE.BufferAttribute(armPositions, 3));
+      armGeometry.setAttribute('color', new THREE.BufferAttribute(armColors, 3));
+      armGeometry.setAttribute('size', new THREE.BufferAttribute(armSizes, 1));
+
+      const armMaterial = new THREE.PointsMaterial({
+        size: 1,
+        transparent: true,
+        opacity: 0.8,
+        vertexColors: true,
+        blending: THREE.AdditiveBlending,
+        sizeAttenuation: true
+      });
+
+      const arm = new THREE.Points(armGeometry, armMaterial);
+      arm.userData = { armData: armData };
+      galaxyArms.push(arm);
+      galaxy.add(arm);
+    }
+
+    // Outer Galaxy Halo
+    const haloGeometry = new THREE.RingGeometry(12, 15, 64);
+    const haloMaterial = new THREE.ShaderMaterial({
       vertexShader: `
         varying vec2 vUv;
+        uniform float scrollFactor;
         void main() {
           vUv = uv;
           gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
@@ -291,64 +341,29 @@
       `,
       fragmentShader: `
         uniform float time;
+        uniform float scrollFactor;
         varying vec2 vUv;
         
         void main() {
-          float radius = length(vUv - 0.5);
-          float energy = sin(radius * 20.0 - time * 5.0) * 0.5 + 0.5;
+          float radius = length(vUv - 0.5) * 2.0;
+          float wave = sin(radius * 15.0 - time - scrollFactor * 0.01) * 0.5 + 0.5;
           
-          vec3 color = vec3(1.0, 0.42, 0.21) * energy;
-          float alpha = (1.0 - radius) * energy * 0.6;
+          vec3 color = vec3(1.0, 0.42, 0.21);
+          float alpha = (1.0 - radius) * wave * 0.3;
           
           gl_FragColor = vec4(color, alpha);
         }
       `,
       uniforms: {
-        time: { value: 0 }
+        time: { value: 0 },
+        scrollFactor: { value: 0 }
       },
       transparent: true,
       side: THREE.DoubleSide
     });
 
-    const energyRing = new THREE.Mesh(ringGeometry, ringMaterial);
-    energyRing.position.set(0, 0, -10);
-    scene.add(energyRing);
-
-    // Add energy particles around the orb
-    const orbParticleCount = 200;
-    const orbParticles = new THREE.BufferGeometry();
-    const orbParticlePositions = new Float32Array(orbParticleCount * 3);
-    const orbParticleVelocities = [];
-
-    for (let i = 0; i < orbParticleCount; i++) {
-      const radius = 6 + Math.random() * 4;
-      const theta = Math.random() * Math.PI * 2;
-      const phi = Math.random() * Math.PI;
-      
-      orbParticlePositions[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
-      orbParticlePositions[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
-      orbParticlePositions[i * 3 + 2] = radius * Math.cos(phi) - 10;
-      
-      orbParticleVelocities.push({
-        theta: theta,
-        phi: phi,
-        radius: radius,
-        speed: Math.random() * 0.02 + 0.01
-      });
-    }
-
-    orbParticles.setAttribute('position', new THREE.BufferAttribute(orbParticlePositions, 3));
-
-    const orbParticleMaterial = new THREE.PointsMaterial({
-      color: 0xff6b35,
-      size: 1.5,
-      transparent: true,
-      opacity: 0.9,
-      blending: THREE.AdditiveBlending
-    });
-
-    const orbParticleSystem = new THREE.Points(orbParticles, orbParticleMaterial);
-    scene.add(orbParticleSystem);
+    const galaxyHalo = new THREE.Mesh(haloGeometry, haloMaterial);
+    galaxy.add(galaxyHalo);
 
     camera.position.z = 20;
 
@@ -373,26 +388,39 @@
 
       const time = Date.now() * 0.001;
       
-      // Update energy orb
-      energyOrb.material.uniforms.time.value = time;
-      energyOrb.rotation.x += 0.008;
-      energyOrb.rotation.y += 0.012;
+      // Galaxy rotation based on scroll
+      const rotationSpeed = 0.002 + (scrollY * 0.0001);
+      galaxy.rotation.z += rotationSpeed;
       
-      // Update energy ring
-      energyRing.material.uniforms.time.value = time;
-      energyRing.rotation.z += 0.015;
+      // Update galaxy center (black hole)
+      galaxyCenter.material.uniforms.time.value = time;
+      galaxyCenter.material.uniforms.scrollFactor.value = scrollY;
       
-      // Animate orb particles in orbit
-      const orbPositions = orbParticleSystem.geometry.attributes.position.array;
-      for (let i = 0; i < orbParticleCount; i++) {
-        const velocity = orbParticleVelocities[i];
-        velocity.theta += velocity.speed;
+      // Update galaxy halo
+      galaxyHalo.material.uniforms.time.value = time;
+      galaxyHalo.material.uniforms.scrollFactor.value = scrollY;
+      
+      // Animate galaxy arms with spiral motion
+      galaxyArms.forEach((arm, armIndex) => {
+        const positions = arm.geometry.attributes.position.array;
+        const armData = arm.userData.armData;
         
-        orbPositions[i * 3] = velocity.radius * Math.sin(velocity.phi) * Math.cos(velocity.theta);
-        orbPositions[i * 3 + 1] = velocity.radius * Math.sin(velocity.phi) * Math.sin(velocity.theta);
-        orbPositions[i * 3 + 2] = velocity.radius * Math.cos(velocity.phi) - 10;
-      }
-      orbParticleSystem.geometry.attributes.position.needsUpdate = true;
+        for (let i = 0; i < armData.length; i++) {
+          const data = armData[i];
+          const scrollInfluence = scrollY * 0.001;
+          const spiralSpeed = 0.5 + scrollInfluence;
+          
+          // Calculate new spiral position
+          const newAngle = data.originalAngle + (time * spiralSpeed) + (scrollY * 0.0005);
+          const radius = data.originalRadius * (1 + Math.sin(time + scrollInfluence) * 0.1);
+          
+          positions[i * 3] = Math.cos(newAngle) * radius;
+          positions[i * 3 + 1] = Math.sin(newAngle) * radius;
+          positions[i * 3 + 2] = (Math.random() - 0.5) * (1 + scrollInfluence * 0.01);
+        }
+        
+        arm.geometry.attributes.position.needsUpdate = true;
+      });
 
       // Animate particles
       const positions = particleSystem.geometry.attributes.position.array;
